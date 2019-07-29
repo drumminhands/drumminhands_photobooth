@@ -14,6 +14,8 @@ file_path = '/home/pi/Pictures/Photobooth/' # path to save images
 clear_on_startup = False # True will clear previously stored photos as the program launches. False will leave all previous photos.
 debounce = 200 # how long to debounce the button. Add more time if the button triggers too many times.
 post_online = False # True to upload images. False to store locally only.
+print_photos = True # Obvious
+print_to_pdf = True # Whether to print to a PDF instead of a printer
 make_gifs = False   # True to make an animated gif. False to post 4 jpgs into one post.
 hi_res_pics = True  # True to save high res pics from camera.
                     # If also uploading, the program will also convert each image to a smaller image before making the gif.

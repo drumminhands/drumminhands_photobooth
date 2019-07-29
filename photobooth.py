@@ -10,11 +10,14 @@ import sys
 import socket
 import time
 import traceback
+
+import cups
 import RPi.GPIO as GPIO
-import picamera # http://picamera.readthedocs.org/en/release-1.4/install2.html
+import picamera
 import pygame
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE
 import pytumblr # https://github.com/tumblr/pytumblr
+
 import config # this is the config python file config.py
 
 ########################
@@ -135,6 +138,22 @@ def clear_screen():
     pygame.display.flip()
 
 
+def create_collage(jpg_group, img_size):
+    # FIXME: this only works for 4 pictures
+    i = 1
+    img_w, img_h = img_size
+    desired_size = img_w // 2, img_h // 2
+    collage = pygame.Surface(img_size)
+    for y in range(2):
+        for x in range(2):
+            img = pygame.image.load(config.file_path + jpg_group + "-0" + str(i) + ".jpg")
+            i += 1
+            scaled_img = pygame.transform.scale(img, desired_size)
+            offset_x = x * img_w // 2
+            offset_y = y * img_h // 2
+            collage.blit(scaled_img, (offset_x, offset_y))
+    return collage
+
 # display a group of images
 def display_pics(jpg_group):
     # FIXME: this only works for 4 pictures
@@ -174,37 +193,34 @@ def display_instructions():
 def take_pictures(camera, jpg_group):
     print("Taking pics")
 
-    try: # take the photos
-        for i in range(1, TOTAL_PICS + 1):
-            camera.hflip = True # preview a mirror image
-            camera.start_preview()
-            for n in range(CAPTURE_DELAY, 0, -1):
-                img = pygame.image.load(REAL_PATH + "/pose" + str(n) + ".png")
-                scaled_img = pygame.transform.scale(img, (96, 64))
-                overlay = camera.add_overlay(pygame.image.tostring(scaled_img, 'RGB'),
-                                             size=(96, 64), format='rgb', layer=3,
-                                             fullscreen=False, window=(0, 0, 96, 64))
-                time.sleep(1)
-                camera.remove_overlay(overlay)
-            # Make the screen white
-            SCREEN.fill((255, 255, 255))
-            pygame.display.flip()
-            camera.stop_preview()
-            turn_on_led()
-            time.sleep(0.25)
-            filename = config.file_path + jpg_group + '-0' + str(i) + '.jpg'
-            camera.hflip = False # flip back when taking photo
-            print('Saving: ' + filename)
-            if config.hi_res_pics:
-                camera.capture(filename)
-            else:
-                camera_w, camera_h = camera.resolution
-                pixel_width = 500 # maximum width of animated gif on tumblr
-                pixel_height = camera_h * pixel_width // camera_w
-                camera.capture(filename, resize=(pixel_width, pixel_height))
-            turn_off_led()
-    finally:
-        camera.close()
+    for i in range(1, TOTAL_PICS + 1):
+        camera.hflip = True # preview a mirror image
+        camera.start_preview()
+        for n in range(CAPTURE_DELAY, 0, -1):
+            img = pygame.image.load(REAL_PATH + "/pose" + str(n) + ".png")
+            scaled_img = pygame.transform.scale(img, (96, 64))
+            overlay = camera.add_overlay(pygame.image.tostring(scaled_img, 'RGB'),
+                                         size=(96, 64), format='rgb', layer=3,
+                                         fullscreen=False, window=(0, 0, 96, 64))
+            time.sleep(1)
+            camera.remove_overlay(overlay)
+        # Make the screen white
+        SCREEN.fill((255, 255, 255))
+        pygame.display.flip()
+        camera.stop_preview()
+        turn_on_led()
+        time.sleep(0.25)
+        filename = config.file_path + jpg_group + '-0' + str(i) + '.jpg'
+        camera.hflip = False # flip back when taking photo
+        print('Saving: ' + filename)
+        if config.hi_res_pics:
+            camera.capture(filename)
+        else:
+            camera_w, camera_h = camera.resolution
+            pixel_width = 500 # maximum width of animated gif on tumblr
+            pixel_height = camera_h * pixel_width // camera_w
+            camera.capture(filename, resize=(pixel_width, pixel_height))
+        turn_off_led()
 
 
 def create_gif(jpg_group):
@@ -273,6 +289,40 @@ def upload_photo(jpg_group):
                     sys.exit(0) # quit Python
 
 
+def print_photos(jpg_group, img_size):
+    conn = cups.Connection()
+    printers = conn.getPrinters()
+    print('Printers: ' + str(list(printers)))
+    cups.setUser('pi')
+    if config.print_to_pdf or len(printers) == 1:
+        print('Printing to PDF')
+        if 'PDF' in printers.keys():
+            printer_name = 'PDF'
+        else:
+            print('No PDF driver.')
+            return
+    else:
+        # TODO: get printer name from config and make sure it's valid
+        if config.printer_name is None:
+            printer_name = None
+            for key in printers.keys():
+                if key != 'PDF':
+                    printer_name = key
+                    break
+            if printer_name is None:
+                print('no valid printer found')
+                return
+        else:
+            printer_name = config.printer_name
+            if not printer_name in printers.keys():
+                print('Cannot find printer (' + printer_name + ')')
+                return
+    img = create_collage(jpg_group, img_size)
+    filename = config.file_path + jpg_group + '-collage.jpg'
+    pygame.image.save(img, filename)
+    print('Printing image')
+    conn.printFile(printer_name, filename, 'Photobooth-' + jpg_group, {'fit-to-page':'true'})
+        
 # define the photo taking function for when the big button is pressed
 def start_photobooth():
     try:
@@ -292,10 +342,18 @@ def start_photobooth():
             upload_photo(now)
 
         display_pics(now)
+
+        # TODO: disable if cups server isn't found
+        if config.print_photos:
+            print_photos(now, camera.resolution)
+
     except Exception as e:
         tb = sys.exc_info()[2]
         traceback.print_exception(e.__class__, e, tb)
         pygame.quit()
+        sys.exit()
+    finally:
+        camera.close()
 
     print("Done")
 
