@@ -15,6 +15,7 @@ clear_on_startup = False # True will clear previously stored photos as the progr
 debounce = 200 # how long to debounce the button. Add more time if the button triggers too many times.
 post_online = False # True to upload images. False to store locally only.
 print_photos = True # Obvious
+printer_name = 'Canon_SELPHY_CP1300' # Specify your printer name. If you comment this out, it will print to the first printer it finds. Printer names are printed to std out when you run the photobooth. You can copy one from there if you do not know the name
 print_to_pdf = False # Whether to print to a PDF instead of a printer
 make_gifs = False   # True to make an animated gif. False to post 4 jpgs into one post.
 hi_res_pics = True  # True to save high res pics from camera.
