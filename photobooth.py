@@ -303,7 +303,12 @@ def print_photos(jpg_group, img_size):
             return
     else:
         # TODO: get printer name from config and make sure it's valid
-        if config.printer_name is None:
+        try:
+            printer_name = config.printer_name
+            if not printer_name in printers.keys():
+                print('Cannot find printer (' + printer_name + ')')
+                return
+        except AttributeError:
             printer_name = None
             for key in printers.keys():
                 if key != 'PDF':
@@ -311,11 +316,6 @@ def print_photos(jpg_group, img_size):
                     break
             if printer_name is None:
                 print('no valid printer found')
-                return
-        else:
-            printer_name = config.printer_name
-            if not printer_name in printers.keys():
-                print('Cannot find printer (' + printer_name + ')')
                 return
     img = create_collage(jpg_group, img_size)
     filename = config.file_path + jpg_group + '-collage.jpg'
