@@ -175,11 +175,10 @@ def display_pics(jpg_group):
 def init_camera():
     print('Init camera')
     camera = picamera.PiCamera()
-    camera.vflip = False
-    camera.hflip = True # flip for preview, showing users a mirror image
     if config.black_and_white:
         camera.saturation = -100
-    #camera.iso = config.camera_iso
+    if config.camera_iso:
+        camera.iso = config.camera_iso
     return camera
 
 
@@ -193,17 +192,17 @@ def display_instructions():
 def take_pictures(camera, jpg_group):
     print("Taking pics")
 
+    camera.annotate_text_size = 160
+    camera.annotate_foreground = picamera.Color('black')
+
     for i in range(1, TOTAL_PICS + 1):
         camera.hflip = True # preview a mirror image
         camera.start_preview()
         for n in range(CAPTURE_DELAY, 0, -1):
-            img = pygame.image.load(REAL_PATH + "/pose" + str(n) + ".png")
-            scaled_img = pygame.transform.scale(img, (96, 64))
-            overlay = camera.add_overlay(pygame.image.tostring(scaled_img, 'RGB'),
-                                         size=(96, 64), format='rgb', layer=3,
-                                         fullscreen=False, window=(0, 0, 96, 64))
-            time.sleep(1)
-            camera.remove_overlay(overlay)
+            camera.annotate_text = str(n)
+            time.sleep(0.5)
+            camera.annotate_text = ''
+            time.sleep(0.5)
         # Make the screen white
         SCREEN.fill((255, 255, 255))
         pygame.display.flip()
@@ -392,7 +391,7 @@ BUTTON_PRESS_EVENT = pygame.event.Event(pygame.USEREVENT, attr1='ButtonPress')
 if config.clear_on_startup:
     clear_pics()
 
-GPIO.add_event_detect(BTN_PIN, GPIO.RISING, callback=post_button_event, bouncetime=config.debounce)
+GPIO.add_event_detect(BTN_PIN, GPIO.RISING, callback=post_button_event, bouncetime=200)
 
 print("Photo booth app running...")
 if not config.have_monitor:

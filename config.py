@@ -12,7 +12,6 @@ tagsForTumblr = "MyTagsHere" # change to tags you want, separated with commas
 have_monitor = True # Set to false to enable cues if you have no display
 file_path = '/home/pi/Pictures/Photobooth/' # path to save images
 clear_on_startup = False # True will clear previously stored photos as the program launches. False will leave all previous photos.
-debounce = 200 # how long to debounce the button. Add more time if the button triggers too many times.
 post_online = False # True to upload images. False to store locally only.
 print_photos = True # Obvious
 printer_name = 'Canon_SELPHY_CP1300' # Specify your printer name. If you comment this out, it will print to the first printer it finds. Printer names are printed to std out when you run the photobooth. You can copy one from there if you do not know the name
@@ -22,6 +21,6 @@ hi_res_pics = True  # True to save high res pics from camera.
                     # If also uploading, the program will also convert each image to a smaller image before making the gif.
                     # False to first capture low res pics. False is faster.
                     # Careful, each photo costs against your daily Tumblr upload max.
-camera_iso = 800    # adjust for lighting issues. Normal is 100 or 200. Sort of dark is 400. Dark is 800 max.
+camera_iso = False    # adjust for lighting issues. Normal is 100 or 200. Sort of dark is 400. Dark is 800 max.
                     # available options: 100, 200, 320, 400, 500, 640, 800
 black_and_white = False # Set to True to capture in black and white
