@@ -15,6 +15,7 @@ import cups
 import RPi.GPIO as GPIO
 import picamera
 import pygame
+import pygame.freetype
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE
 import pytumblr # https://github.com/tumblr/pytumblr
 
@@ -23,7 +24,6 @@ import config # this is the config python file config.py
 ########################
 ### Variables Config ###
 ########################
-LED_PIN = 7 # LED
 BTN_PIN = 18 # pin for the start button
 
 TOTAL_PICS = 4 # number of pics to be taken
@@ -57,22 +57,6 @@ def post_button_event():
     pygame.event.post(BUTTON_PRESS_EVENT)
 
 
-def turn_on_led():
-    GPIO.output(LED_PIN, True)
-
-
-def turn_off_led():
-    GPIO.output(LED_PIN, False)
-
-
-def blink_led(count):
-    for _ in range(0, count):
-        turn_on_led()
-        time.sleep(0.25)
-        turn_off_led()
-        time.sleep(0.25)
-
-
 #delete files in folder
 def clear_pics():
     files = glob.glob(config.file_path + '*')
@@ -80,8 +64,6 @@ def clear_pics():
         os.remove(f)
     #light the lights in series to show completed
     print("Deleted previous pics")
-    if not config.have_monitor:
-        blink_led(3)
 
 
 # check if connected to the internet
@@ -96,6 +78,30 @@ def is_connected():
     except:
         pass
     return False
+
+
+def blit_text(surface, pos, text, font, fgcolor=None, width=None):
+    font.origin = True
+    lines = [line.split(' ') for line in text.splitlines()]  # 2D array where each row is a list of words.
+    line_spacing = font.get_sized_height() + 2
+    space = font.get_rect(' ')
+    height = surface.get_height()
+    if width is None:
+        width = surface.get_width()
+    x, y = pos
+    for words in lines:
+        for word in words:
+            bounds = font.get_rect(word)
+            if x + bounds.width + bounds.x >= width:
+                x, y = pos[0] + 4 * space.width, y + line_spacing
+            if x + bounds.width + bounds.x >= width:
+                raise ValueError("word too wide for the surface")
+            if y + bounds.height - bounds.y >= height:
+                raise ValueError("text to long for the surface")
+            font.render_to(surface, (x, y), None, fgcolor)
+            x += bounds.width + space.width
+        x, y = pos[0], y + line_spacing # new line
+
 
 def scale(orig_size, desired_size, maximum=True):
     w, h = orig_size
@@ -183,10 +189,35 @@ def init_camera():
 
 
 def display_instructions():
-    print("Get Ready")
-    turn_off_led()
+    print("Displaying instructions")
     show_image(REAL_PATH + "/instructions.png")
     time.sleep(PREP_DELAY)
+
+
+def display_intro():
+    SCREEN.fill((0, 0, 0))
+    title_font = pygame.freetype.SysFont('DejaVu Sans', 60)
+    title_size_rect = title_font.get_rect('Instructions')
+    title_x = (SCREEN.get_width() - title_size_rect.width) // 2
+    title_rect = title_font.render_to(SCREEN, (title_x, 4), None, (255, 255, 255))
+    text_top = title_rect.bottom + 8
+    text_font = pygame.freetype.SysFont('DejaVu Sans', 28)
+    english_text = """1. Make sure the lights are ON
+2. Choose your costume
+3. Tap this screen
+4. Pose for 4 pictures
+5. Wait for the picture to print
+6. Put the picture in the guestbook with your message"""
+    french_text = """1. Verifier que les lumieres sont allumees
+2. Choisir votre deguisement
+3. Toucher l'ecran
+4. Prenez la pose pour 4 photos
+5. Attendre que les photos s'impriment
+6. Coller la photo dans le livre d'or avec votre petit mot"""
+    blit_text(SCREEN, (4, text_top), english_text, text_font, (255, 255, 255), SCREEN.get_width() // 2 - 8)
+    blit_text(SCREEN, (SCREEN.get_width() // 2 + 4, text_top), french_text, text_font, (255, 255, 255), SCREEN.get_width() - 4)
+    pygame.display.flip()
+    #show_image(REAL_PATH + "/intro.png")
 
 
 def take_pictures(camera, jpg_group):
@@ -199,15 +230,19 @@ def take_pictures(camera, jpg_group):
         camera.hflip = True # preview a mirror image
         camera.start_preview()
         for n in range(CAPTURE_DELAY, 0, -1):
-            camera.annotate_text = str(n)
+            surface = pygame.Surface(SCREEN.get_size(), pygame.SRCALPHA)
+            font = pygame.freetype.SysFont('DejaVu Sans', 360)
+            rect = font.get_rect(str(n))
+            pos = (surface.get_width() - rect.width) // 2, (surface.get_height() - rect.height) // 2
+            font.render_to(surface, pos, None, (0, 0, 0))
+            overlay = camera.add_overlay(pygame.image.tostring(surface, 'RGBA'), surface.get_size(), layer=3, format='rgba')
             time.sleep(0.5)
-            camera.annotate_text = ''
+            camera.remove_overlay(overlay)
             time.sleep(0.5)
         # Make the screen white
         SCREEN.fill((255, 255, 255))
         pygame.display.flip()
         camera.stop_preview()
-        turn_on_led()
         time.sleep(0.25)
         filename = config.file_path + jpg_group + '-0' + str(i) + '.jpg'
         camera.hflip = False # flip back when taking photo
@@ -219,7 +254,6 @@ def take_pictures(camera, jpg_group):
             pixel_width = 500 # maximum width of animated gif on tumblr
             pixel_height = camera_h * pixel_width // camera_w
             camera.capture(filename, resize=(pixel_width, pixel_height))
-        turn_off_led()
 
 
 def create_gif(jpg_group):
@@ -301,7 +335,6 @@ def print_photos(jpg_group, img_size):
             print('No PDF driver.')
             return
     else:
-        # TODO: get printer name from config and make sure it's valid
         try:
             printer_name = config.printer_name
             if not printer_name in printers.keys():
@@ -319,7 +352,7 @@ def print_photos(jpg_group, img_size):
     img = create_collage(jpg_group, img_size)
     filename = config.file_path + jpg_group + '-collage.jpg'
     pygame.image.save(img, filename)
-    print('Printing image')
+    print('Printing to ' + printer_name)
     conn.printFile(printer_name, filename, 'Photobooth-' + jpg_group, {'fit-to-page':'true'})
         
 # define the photo taking function for when the big button is pressed
@@ -362,8 +395,6 @@ def start_photobooth():
         show_image(REAL_PATH + "/finished2.png")
 
     time.sleep(RESTART_DELAY)
-    show_image(REAL_PATH + "/intro.png")
-    turn_on_led()
 
 
 ######################
@@ -373,9 +404,7 @@ def start_photobooth():
 
 # GPIO setup
 GPIO.setmode(GPIO.BOARD)
-GPIO.setup(LED_PIN, GPIO.OUT) # LED
 GPIO.setup(BTN_PIN, GPIO.IN, pull_up_down=GPIO.PUD_UP)
-turn_off_led()
 
 # initialize pygame
 pygame.init()
@@ -394,18 +423,15 @@ if config.clear_on_startup:
 GPIO.add_event_detect(BTN_PIN, GPIO.RISING, callback=post_button_event, bouncetime=200)
 
 print("Photo booth app running...")
-if not config.have_monitor:
-    blink_led(5)
 
 
 ####################
 ### Main Program ###
 ####################
 
-show_image(REAL_PATH + "/intro.png")
-
 while True:
-    turn_on_led() #turn on the light showing users they can push the button
+    display_intro()
+
     for event in pygame.event.get():  # Hit the ESC key to quit the slideshow.
         if (event.type == QUIT or
                 (event.type == KEYDOWN and event.key == K_ESCAPE)):

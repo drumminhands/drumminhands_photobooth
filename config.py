@@ -9,7 +9,6 @@ tumblr_blog = 'TUMBLR_BLOG' # replace with your tumblr account name without .tum
 tagsForTumblr = "MyTagsHere" # change to tags you want, separated with commas
 
 #Config settings to change behavior of photo booth
-have_monitor = True # Set to false to enable cues if you have no display
 file_path = '/home/pi/Pictures/Photobooth/' # path to save images
 clear_on_startup = False # True will clear previously stored photos as the program launches. False will leave all previous photos.
 post_online = False # True to upload images. False to store locally only.
