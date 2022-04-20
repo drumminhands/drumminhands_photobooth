@@ -17,7 +17,6 @@ import picamera
 import pygame
 import pygame.freetype
 from pygame.locals import QUIT, KEYDOWN, K_ESCAPE
-import pytumblr # https://github.com/tumblr/pytumblr
 
 import config # this is the config python file config.py
 
@@ -274,54 +273,6 @@ def create_gif(jpg_group):
                   + "*.jpg " + config.file_path + jpg_group + ".gif")
 
 
-def upload_photo(jpg_group):
-    # Setup the tumblr OAuth Client
-    client = pytumblr.TumblrRestClient(
-        config.consumer_key,
-        config.consumer_secret,
-        config.oath_token,
-        config.oath_secret,
-    )
-
-    show_image(REAL_PATH + "/uploading.png")
-    connected = is_connected() #check to see if you have an internet connection
-
-    if not connected:
-        print("bad internet connection")
-
-    while connected:
-        if config.make_gifs:
-            try:
-                file_to_upload = config.file_path + jpg_group + ".gif"
-                client.create_photo(config.tumblr_blog, state="published",
-                                    tags=[config.tagsForTumblr], data=file_to_upload)
-                break
-            except ValueError:
-                print("Oops. No internect connection. Upload later.")
-                try: #make a text file as a note to upload the .gif later
-                    file = open(config.file_path + jpg_group + "-FILENOTUPLOADED.txt", 'w')
-                    file.close()
-                except:
-                    print('Something went wrong. Could not write file.')
-                    sys.exit(0) # quit Python
-        else: # upload jpgs instead
-            try:
-                # create an array and populate with file paths to our jpgs
-                jpgs = [config.file_path + jpg_group + "-0" + str(i+1) + ".jpg" for i in range(4)]
-                client.create_photo(config.tumblr_blog, state="published",
-                                    tags=[config.tagsForTumblr], format="markdown",
-                                    data=jpgs)
-                break
-            except ValueError:
-                print("Oops. No internect connection. Upload later.")
-                try: #make a text file as a note to upload the .gif later
-                    file = open(config.file_path + jpg_group + "-FILENOTUPLOADED.txt", 'w')
-                    file.close()
-                except:
-                    print('Something went wrong. Could not write file.')
-                    sys.exit(0) # quit Python
-
-
 def print_photos(jpg_group, img_size):
     conn = cups.Connection()
     printers = conn.getPrinters()
@@ -369,9 +320,6 @@ def start_photobooth():
 
         if config.make_gifs: # make the gifs
             create_gif(now)
-
-        if config.post_online: # turn off posting pics online in config.py
-            upload_photo(now)
 
         display_pics(now)
 
