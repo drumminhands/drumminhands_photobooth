@@ -1,21 +1,15 @@
 # Photobooth
 
-A DIY photo booth using a Raspberry Pi that takes a series of pictures and can print them and send an animated gif to tumblr.
-
-Find the full set of instructions here: https://www.drumminhands.com/2018/06/15/raspberry-pi-photo-booth/
+A DIY photo booth using a Raspberry Pi that takes a series of pictures and can print them and create an animated gif.
 
 See also a companion projector to the photo booth.
 - Code: https://github.com/drumminhands/drumminhands_projector
-- Instructions: http://www.drumminhands.com/2016/09/02/raspberry-pi-photo-booth-projector/
 
 ## Requirements
 
   - PiCamera -- http://picamera.readthedocs.org/
   - GraphicsMagick -- http://www.graphicsmagick.org/
-  - pytumblr -- https://github.com/tumblr/pytumblr
   - pycups -- https://github.com/zdohnal/pycups
-
-Be sure to add all of your own keys to config.py
 
 ## Credits
 

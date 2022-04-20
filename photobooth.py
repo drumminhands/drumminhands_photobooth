@@ -1,5 +1,4 @@
-"""This module simulates a photobooth.
-See instructions at http://www.drumminhands.com/2014/06/15/raspberry-pi-photo-booth/"""
+# This module simulates a photobooth.
 # created by chris@drumminhands.com
 # modified by sproctor@gmail.com
 
